@@ -139,6 +139,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
         };
         oss = new OSSClient(registrar.context(), endpoint, credentialProvider);
         channel.invokeMethod("onInit", m1);
+        _result.success(true);
     }
 
     private void asyncHeadObject(final MethodCall call) {
@@ -252,6 +253,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                     @Override
                     public void run() {
                         channel.invokeMethod("onInit", m1);
+                        _result.success(true);
                     }
                 });
     }
@@ -349,6 +351,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                                         @Override
                                         public void run() {
                                             channel.invokeMethod("onUpload", m1);
+                                            _result.success(true);
                                         }
                                     });
                         }
@@ -383,6 +386,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                                         @Override
                                         public void run() {
                                             channel.invokeMethod("onUpload", m1);
+                                            _result.error("err", "上传失败", null);
                                         }
                                     });
                         }
