@@ -3,8 +3,8 @@ version '1.0-SNAPSHOT'
 
 buildscript {
     repositories {
-        google()
-        jcenter()
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
     }
 
     dependencies {
@@ -14,8 +14,8 @@ buildscript {
 
 rootProject.allprojects {
     repositories {
-        google()
-        jcenter()
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven { url 'https://maven.aliyun.com/repository/public' }
     }
 }
 
@@ -33,7 +33,7 @@ android {
     }
 }
 dependencies {
-    implementation 'com.aliyun.dpa:oss-android-sdk:+'
+    implementation 'com.aliyun.dpa:oss-android-sdk:2.9.4'
     // implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     // implementation 'com.squareup.okio:okio:1.14.0'
 }
