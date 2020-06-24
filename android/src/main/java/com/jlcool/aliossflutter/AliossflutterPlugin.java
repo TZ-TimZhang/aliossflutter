@@ -29,6 +29,7 @@ import com.alibaba.sdk.android.oss.model.ListObjectsResult;
 import com.alibaba.sdk.android.oss.model.OSSObjectSummary;
 import com.alibaba.sdk.android.oss.model.PutObjectRequest;
 import com.alibaba.sdk.android.oss.model.PutObjectResult;
+import com.alibaba.sdk.android.oss.common.OSSLog;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -67,6 +68,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
     private AliossflutterPlugin(Registrar registrar, Activity activity) {
         this.registrar = registrar;
         this.activity = activity;
+        OSSLog.enableLog();
     }
 
     /**
@@ -122,24 +124,35 @@ public class AliossflutterPlugin implements MethodCallHandler {
     }
 
     private void secretInit() {
-        endpoint = _call.argument("endpoint");
-        final String accessKeyId = _call.argument("accessKeyId");
-        final String accessKeySecret = _call.argument("accessKeySecret");
-        final String _id = _call.argument("id");
-
-        final Map<String, String> m1 = new HashMap();
-        m1.put("result", "success");
-        m1.put("id", _id);
-
-        final OSSCustomSignerCredentialProvider credentialProvider = new OSSCustomSignerCredentialProvider() {
+        new Thread() {
             @Override
-            public String signContent(String content) {
-                return OSSUtils.sign(accessKeyId, accessKeySecret, content);
+            public void run() {
+                endpoint = _call.argument("endpoint");
+                final String accessKeyId = _call.argument("accessKeyId");
+                final String accessKeySecret = _call.argument("accessKeySecret");
+                final String _id = _call.argument("id");
+
+                final Map<String, String> m1 = new HashMap();
+                m1.put("result", "success");
+                m1.put("id", _id);
+
+                final OSSCustomSignerCredentialProvider credentialProvider = new OSSCustomSignerCredentialProvider() {
+                    @Override
+                    public String signContent(String content) {
+                        return OSSUtils.sign(accessKeyId, accessKeySecret, content);
+                    }
+                };
+                oss = new OSSClient(registrar.context(), endpoint, credentialProvider);
+                activity.runOnUiThread(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                channel.invokeMethod("onInit", m1);
+                                _result.success(true);
+                            }
+                        });
             }
-        };
-        oss = new OSSClient(registrar.context(), endpoint, credentialProvider);
-        channel.invokeMethod("onInit", m1);
-        _result.success(true);
+        }.start();
     }
 
     private void asyncHeadObject(final MethodCall call) {
@@ -268,7 +281,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
             m1.put("key", key);
             m1.put("message", "请先初始化");
             channel.invokeMethod("onUpload", m1);
-
+            Log.e("upload", "请先初始化");
         } else {
             final String bucket = call.argument("bucket");
             final String file = call.argument("file");
@@ -296,6 +309,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                             });
                 }
             });
+            Log.e("upload", "PutObjectRequest");
             if (_callbackUrl != "" && _callbackUrl != null) {
 
                 try {
@@ -331,6 +345,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                 }
 
             }
+            Log.e("upload", "OSSAsyncTask");
             OSSAsyncTask task = oss.asyncPutObject(put, new OSSCompletedCallback<PutObjectRequest, PutObjectResult>() {
                         @Override
                         public void onSuccess(PutObjectRequest request, PutObjectResult result) {
@@ -358,6 +373,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
 
                         @Override
                         public void onFailure(PutObjectRequest request, ClientException clientExcepion, ServiceException serviceException) {
+                            Log.e("upload", "onFailure");
                             // 请求异常
                             final Map<String, String> m1 = new HashMap();
                             if (clientExcepion != null) {
@@ -392,6 +408,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                         }
                     }
             );
+            Log.e("upload", "OSSAsyncTask after");
         }
     }
 
