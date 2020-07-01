@@ -153,6 +153,7 @@ OSSClient *oss ;
                          @"id":_id
                          };
     [channel invokeMethod:@"onInit" arguments:m1];
+    result([NSNumber numberWithBool:true]);
 }
 - (void)update:(FlutterMethodCall*)call result:(FlutterResult)result {
     NSString * _id = call.arguments[@"id"];
@@ -200,6 +201,7 @@ OSSClient *oss ;
                                      @"id":_id
                                      };
                 [channel invokeMethod:@"onUpload" arguments:m1];
+                result([NSNumber numberWithBool:true]);
             } else {
                 
                 NSDictionary *m1 = @{
@@ -209,6 +211,9 @@ OSSClient *oss ;
                                      @"message":task.error
                                      };
                 [channel invokeMethod:@"onUpload" arguments:m1];
+                result([FlutterError errorWithCode:@"err"
+                                       message:@"上传失败"
+                                       details:nil]);
             }
             return nil;
         }];
