@@ -93,6 +93,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                 break;
             case "init":
                 init();
+                break;
             case "secretInit":
                 secretInit();
                 break;
@@ -209,30 +210,33 @@ public class AliossflutterPlugin implements MethodCallHandler {
     }
 
     private void init() {
-        endpoint = _call.argument("endpoint");
-        final String stsServer = _call.argument("stsserver");
-        final String crypt_key = _call.argument("cryptkey");
-        final String crypt_type = _call.argument("crypttype");
-        final String _id = _call.argument("id");
-        final OSSCredentialProvider credentialProvider = new OSSFederationCredentialProvider() {
+        new Thread() {
             @Override
-            public OSSFederationToken getFederationToken() {
-                try {
-                    URL stsUrl = new URL(stsServer);
-                    HttpURLConnection conn = (HttpURLConnection) stsUrl.openConnection();
-                    InputStream input = conn.getInputStream();
-                    String jsonText = IOUtils.readStreamAsString(input, OSSConstants.DEFAULT_CHARSET_NAME);
-                    JSONObject jsonObj = new JSONObject(jsonText);
-                    if (!"".equals(crypt_key) && crypt_key != null) {
-                        String dec = jsonObj.getString("Data");
-                        if ("aes".equals(crypt_type)) {
-                            jsonText = AESCipher.aesDecryptString(dec, crypt_key);
-                        } else {
-                            SecretUtils.PASSWORD_CRYPT_KEY = crypt_key;
-                            jsonText = new String(SecretUtils.decryptMode(dec));
-                        }
-                    }
-                    JSONObject jsonObjs = new JSONObject(jsonText);
+            public void run() {
+                endpoint = _call.argument("endpoint");
+                final String stsServer = _call.argument("stsserver");
+                final String crypt_key = _call.argument("cryptkey");
+                final String crypt_type = _call.argument("crypttype");
+                final String _id = _call.argument("id");
+                final OSSCredentialProvider credentialProvider = new OSSFederationCredentialProvider() {
+                    @Override
+                    public OSSFederationToken getFederationToken() {
+                        try {
+                            URL stsUrl = new URL(stsServer);
+                            HttpURLConnection conn = (HttpURLConnection) stsUrl.openConnection();
+                            InputStream input = conn.getInputStream();
+                            String jsonText = IOUtils.readStreamAsString(input, OSSConstants.DEFAULT_CHARSET_NAME);
+                            JSONObject jsonObj = new JSONObject(jsonText);
+                            if (!"".equals(crypt_key) && crypt_key != null) {
+                                String dec = jsonObj.getString("Data");
+                                if ("aes".equals(crypt_type)) {
+                                    jsonText = AESCipher.aesDecryptString(dec, crypt_key);
+                                } else {
+                                    SecretUtils.PASSWORD_CRYPT_KEY = crypt_key;
+                                    jsonText = new String(SecretUtils.decryptMode(dec));
+                                }
+                            }
+                            JSONObject jsonObjs = new JSONObject(jsonText);
 //                    {
 //                        "StatusCode": 200,
 //                            "AccessKeyId":"STS.iA645eTOXEqP3cg3VeHf",
@@ -240,35 +244,37 @@ public class AliossflutterPlugin implements MethodCallHandler {
 //                            "Expiration":"2015-11-03T09:52:59Z",
 //                            "SecurityToken":"CAES7QIIARKAAZPlqaN9ILiQZPS+JDkS/GSZN45RLx4YS/p3OgaUC+oJl3XSlbJ7StKpQ...."
 //                      }
-                    String ak = jsonObjs.getString("AccessKeyId");
-                    String sk = jsonObjs.getString("AccessKeySecret");
-                    String token = jsonObjs.getString("SecurityToken");
-                    String expiration = jsonObjs.getString("Expiration");
-                    return new OSSFederationToken(ak, sk, token, expiration);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }
-        };
-        final ClientConfiguration conf = new ClientConfiguration();
-        conf.setConnectionTimeout(15 * 1000); // 连接超时时间，默认15秒
-        conf.setSocketTimeout(15 * 1000); // Socket超时时间，默认15秒
-        conf.setMaxConcurrentRequest(5); // 最大并发请求数，默认5个
-        conf.setMaxErrorRetry(2); // 失败后最大重试次数，默认2次
-
-        oss = new OSSClient(registrar.context(), endpoint, credentialProvider, conf);
-        final Map<String, String> m1 = new HashMap();
-        m1.put("result", "success");
-        m1.put("id", _id);
-        activity.runOnUiThread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        channel.invokeMethod("onInit", m1);
-                        _result.success(true);
+                            String ak = jsonObjs.getString("AccessKeyId");
+                            String sk = jsonObjs.getString("AccessKeySecret");
+                            String token = jsonObjs.getString("SecurityToken");
+                            String expiration = jsonObjs.getString("Expiration");
+                            return new OSSFederationToken(ak, sk, token, expiration);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        return null;
                     }
-                });
+                };
+                final ClientConfiguration conf = new ClientConfiguration();
+                conf.setConnectionTimeout(15 * 1000); // 连接超时时间，默认15秒
+                conf.setSocketTimeout(15 * 1000); // Socket超时时间，默认15秒
+                conf.setMaxConcurrentRequest(5); // 最大并发请求数，默认5个
+                conf.setMaxErrorRetry(2); // 失败后最大重试次数，默认2次
+
+                oss = new OSSClient(registrar.context(), endpoint, credentialProvider, conf);
+                final Map<String, String> m1 = new HashMap();
+                m1.put("result", "success");
+                m1.put("id", _id);
+                activity.runOnUiThread(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                channel.invokeMethod("onInit", m1);
+                                _result.success(true);
+                            }
+                        });
+            }
+        }.start();
     }
 
     private void upload(final MethodCall call) {
@@ -377,6 +383,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                             // 请求异常
                             final Map<String, String> m1 = new HashMap();
                             if (clientExcepion != null) {
+                                Log.e("upload", "clientExcepion");
                                 // 本地异常如网络异常等
                                 clientExcepion.printStackTrace();
                                 m1.put("result", "fail");
@@ -385,6 +392,7 @@ public class AliossflutterPlugin implements MethodCallHandler {
                                 m1.put("message", clientExcepion.getMessage());
                             }
                             if (serviceException != null) {
+                                Log.e("upload", "serviceException");
                                 // 服务异常
                                 Log.e("ErrorCode", serviceException.getErrorCode());
                                 Log.e("RequestId", serviceException.getRequestId());
